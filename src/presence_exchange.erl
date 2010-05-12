@@ -39,12 +39,12 @@ encode_binding_delivery(DeliveryXName,
                         #binding{exchange_name = #resource{name = XName},
                                  key = BindingKey,
                                  queue_name = #resource{name = QName}}) ->
-    Body = list_to_binary(["action: ", atom_to_list(Action), "\n",
-                           "exchange: ", XName, "\n",
-                           "queue: ", QName, "\n",
-                           "key: ", BindingKey, "\n"]),
+    Headers = [{<<"action">>, longstr, atom_to_list(Action)},
+               {<<"exchange">>, longstr, XName},
+               {<<"queue">>, longstr, QName},
+               {<<"key">>, longstr, BindingKey}],
     rabbit_basic:delivery(false, false, none,
-                          rabbit_basic:message(DeliveryXName, <<>>, [], Body)).
+                          rabbit_basic:message(DeliveryXName, <<>>, [{headers, Headers}], <<>>)).
 
 description() ->
     [{description, <<"Experimental Presence exchange">>}].
@@ -58,10 +58,10 @@ recover(_X, _Bs) -> ok.
 delete(_X, _Bs) -> ok.
 
 add_binding(X = #exchange{name = XName}, B) ->
-    _ = rabbit_exchange_type_fanout:publish(X, encode_binding_delivery(XName, add, B)),
+    _ = rabbit_exchange_type_fanout:publish(X, encode_binding_delivery(XName, bind, B)),
     ok.
 
 remove_bindings(X = #exchange{name = XName}, Bs) ->
-    _ = [rabbit_exchange_type_fanout:publish(X, encode_binding_delivery(XName, remove, B))
+    _ = [rabbit_exchange_type_fanout:publish(X, encode_binding_delivery(XName, unbind, B))
          || B <- Bs],
     ok.
