@@ -32,7 +32,8 @@
 -behaviour(rabbit_exchange_type).
 
 -export([description/0, publish/2]).
--export([validate/1, create/1, recover/2, delete/2, add_binding/2, remove_bindings/2]).
+-export([validate/1, create/1, recover/2, delete/2, add_binding/2, remove_bindings/2,
+         assert_args_equivalence/2]).
 
 encode_binding_delivery(DeliveryXName,
                         Action,
@@ -65,3 +66,6 @@ remove_bindings(X = #exchange{name = XName}, Bs) ->
     _ = [rabbit_exchange_type_fanout:publish(X, encode_binding_delivery(XName, unbind, B))
          || B <- Bs],
     ok.
+
+assert_args_equivalence(X, Args) ->
+    rabbit_exchange:assert_args_equivalence(X, Args).
