@@ -2,5 +2,9 @@ This package, presence-exchange, an exchange type plugin for use with
 RabbitMQ, is licensed under the MPL. For the MPL, please see
 LICENSE-MPL-presence-exchange.
 
+The Initial Developers of the Original Code are Rabbit Technologies
+Ltd and Tony Garnock-Jones. Original code 'presence-exchange':
+  https://github.com/tonyg/presence-exchange
+
 If you have any questions regarding licensing, please contact
 info@rabbitmq.com.

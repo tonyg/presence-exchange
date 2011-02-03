@@ -8,63 +8,74 @@
 %% the License for the specific language governing rights and limitations
 %% under the License.
 %%
-%% The Original Code is presence-exchange.
+%% The Original Code is presence-exchange by Tony Garnock-Jones.
 %%
 %% The Initial Developers of the Original Code are Rabbit Technologies
 %% Ltd and Tony Garnock-Jones.
 %%
-%% Portions created by Rabbit Technologies Ltd or by Tony Garnock-Jones
-%% are Copyright (C) 2010 Rabbit Technologies Ltd and Tony Garnock-Jones.
-%%
-%% All Rights Reserved.
-%%
-%% Contributor(s): ______________________________________.
 -module(presence_exchange).
 -include_lib("rabbit_common/include/rabbit.hrl").
 
--define(EXCHANGE_TYPE_BIN, <<"x-presence">>).
-
--rabbit_boot_step({?MODULE,
-                   [{mfa, {rabbit_exchange_type_registry, register, [?EXCHANGE_TYPE_BIN, ?MODULE]}},
-                    {requires, rabbit_exchange_type_registry},
-                    {enables, exchange_recovery}]}).
-
 -behaviour(rabbit_exchange_type).
 
--export([description/0, publish/2]).
--export([validate/1, create/1, recover/2, delete/2, add_binding/2, remove_bindings/2,
-         assert_args_equivalence/2]).
+-rabbit_boot_step({?MODULE,
+                   [{description, "exchange type x-presence"},
+		    {mfa,         {rabbit_registry, register,
+				   [exchange, <<"x-presence">>, ?MODULE]}},
+                    {requires,    rabbit_registry},
+                    {enables,     kernel_ready}]}).
+
+-export([description/0, serialise_events/0, route/2]).
+-export([validate/1, create/2, recover/2, delete/3, add_binding/3,
+	 remove_bindings/3, assert_args_equivalence/2]).
 
 encode_binding_delivery(DeliveryXName,
                         Action,
-                        #binding{exchange_name = #resource{name = XName},
+                        #binding{source = #resource{name = XName},
                                  key = BindingKey,
-                                 queue_name = #resource{name = QName}}) ->
+                                 destination = #resource{name = QName}}) ->
     Headers = [{<<"action">>, longstr, atom_to_list(Action)},
                {<<"exchange">>, longstr, XName},
                {<<"queue">>, longstr, QName},
                {<<"key">>, longstr, BindingKey}],
-    rabbit_basic:delivery(false, false, none,
-                          rabbit_basic:message(DeliveryXName, <<>>, [{headers, Headers}], <<>>)).
+    rabbit_basic:delivery(false, false,
+                          rabbit_basic:message(
+			    DeliveryXName, <<"listen">>,
+			    [{headers, Headers}], <<>>),
+			  undefined).
 
 description() ->
-    [{description, <<"Experimental Presence exchange">>}].
+    [{name, <<"x-presence">>},
+     {description, <<"Presence exchange">>}].
 
-publish(_Exchange, _Delivery) ->
-    [].
+serialise_events() -> false.
+
+route(#exchange{name = Name},
+      #delivery{message = #basic_message{routing_keys = RoutingKeys}}) ->
+    rabbit_router:match_routing_key(Name, RoutingKeys).
 
 validate(_X) -> ok.
-create(_X) -> ok.
+create(_Tx, _X) -> ok.
 recover(_X, _Bs) -> ok.
-delete(_X, _Bs) -> ok.
+delete(_Tx, _X, _Bs) -> ok.
 
-add_binding(X = #exchange{name = XName}, B) ->
-    _ = rabbit_exchange_type_fanout:publish(X, encode_binding_delivery(XName, bind, B)),
+add_binding(none, #exchange{name = _XName},
+	   #binding{key = <<"listen">>}) ->
+    ok;
+add_binding(none, #exchange{name = XName}, B) ->
+    rabbit_basic:publish(encode_binding_delivery(XName, bind, B)),
+    ok;
+add_binding(transaction, _Exchange, _Binding) ->
     ok.
 
-remove_bindings(X = #exchange{name = XName}, Bs) ->
-    _ = [rabbit_exchange_type_fanout:publish(X, encode_binding_delivery(XName, unbind, B))
-         || B <- Bs],
+remove_bindings(Tx, X, Bs) ->
+    [ok = remove_binding(Tx, X, B) || B <- Bs],
+    ok.
+
+remove_binding(none, #exchange{name = XName}, B) ->
+    rabbit_basic:publish(encode_binding_delivery(XName, unbind, B)),
+    ok;
+remove_binding(transaction, _X, _B) ->
     ok.
 
 assert_args_equivalence(X, Args) ->
