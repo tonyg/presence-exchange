@@ -1,3 +1,7 @@
+ebin
 build
 dist
 *.beam
+test/.idea
+test/out
+test/tests/tests.iml
