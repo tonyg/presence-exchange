@@ -5,10 +5,10 @@ type, `x-presence`. An exchange of type `x-presence` notifies queues
 that are bound to it when other bindings appear and disappear.
 
 Messages are sent out from an `x-presence` exchange to queues attached
-with a binding key `listen` when a new binding appears or an existing
-binding disappears. The message sent out has an empty body, with all
-the interesting information in the `headers` property of the message
-headers:
+with a binding key of the empty string when a new binding appears or
+an existing binding disappears. The message sent out has an empty
+body, with all the interesting information in the `headers` property
+of the message headers:
 
     Key       Type  Description
     -----------------------------------------------------------------
@@ -17,11 +17,11 @@ headers:
     queue     str   The name of the queue being bound/unbound
     key	      str   The binding key supplied at the time of binding
 
-No messages are published for bindings with a key `listen`. That means
-there are two categories of bindings:
+No messages are published for bindings with a key of the empty
+string. That means there are two categories of bindings:
 
- - bindings made with a key `listen`, which receive presence messages,
-   but do not produce them; and
+ - bindings made with the empty string `""` as their binding key,
+   which receive presence messages, but do not produce them; and
 
  - bindings made with any other binding key, which produce presence
    messages but do not receive them.

@@ -17,6 +17,7 @@
 -include_lib("rabbit_common/include/rabbit.hrl").
 
 -define(EXCHANGE_TYPE_BIN, <<"x-presence">>).
+-define(LISTENER_KEY, <<"">>).
 
 -behaviour(rabbit_exchange_type).
 
@@ -42,7 +43,7 @@ encode_binding_delivery(DeliveryXName,
                {<<"key">>, longstr, BindingKey}],
     rabbit_basic:delivery(false, false,
                           rabbit_basic:message(
-			    DeliveryXName, <<"listen">>,
+			    DeliveryXName, ?LISTENER_KEY,
 			    [{headers, Headers}], <<>>),
 			  undefined).
 
@@ -72,7 +73,7 @@ deliver(Delivery = #delivery{message = #basic_message{exchange_name = XName,
     Queues = rabbit_router:match_routing_key(XName, RoutingKeys),
     rabbit_router:deliver(Queues, Delivery).
 
-add_binding(none, _X, #binding{key = <<"listen">>}) ->
+add_binding(none, _X, #binding{key = ?LISTENER_KEY}) ->
     ok;
 add_binding(none, #exchange{name = XName}, B) ->
     deliver(encode_binding_delivery(XName, bind, B)),
@@ -84,7 +85,7 @@ remove_bindings(Tx, X, Bs) ->
     [ok = remove_binding(Tx, X, B) || B <- Bs],
     ok.
 
-remove_binding(none, _X, #binding{key = <<"listen">>}) ->
+remove_binding(none, _X, #binding{key = ?LISTENER_KEY}) ->
     ok;
 remove_binding(none, #exchange{name = XName}, B) ->
     deliver(encode_binding_delivery(XName, unbind, B)),

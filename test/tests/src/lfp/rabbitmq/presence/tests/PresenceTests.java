@@ -12,7 +12,7 @@ import java.util.Map;
 public class PresenceTests extends BrokerTestCase {
     final String xname = "Presence exchange for testing"; /* Presence exchange name */
     final String xtype = "x-presence";
-    final String listenKey = "listen";
+    final String listenKey = "";
     final String otherKey = "other";
 
     String lq1, lq2; /* Listen queues */
