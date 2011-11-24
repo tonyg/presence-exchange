@@ -52,20 +52,31 @@ description() ->
 
 serialise_events() -> false.
 
-route(#exchange{name = Name},
-      #delivery{message = #basic_message{routing_keys = RoutingKeys}}) ->
-    rabbit_router:match_routing_key(Name, RoutingKeys).
+route(_Exchange, _Delivery) ->
+    [].
 
 validate(_X) -> ok.
 create(_Tx, _X) -> ok.
 recover(_X, _Bs) -> ok.
 delete(_Tx, _X, _Bs) -> ok.
 
+%% This code is based on the publish/2 code in rabbit_basic.erl, with
+%% the middle step of going through the exchange-type's route/2
+%% callback (which in our case always returns []) eliminated.
+%%
+%% Essentially we're avoiding publishing through ourselves "from the
+%% outside", and instead emitting messages as if they originated
+%% within the exchange.
+deliver(Delivery = #delivery{message = #basic_message{exchange_name = XName,
+                                                      routing_keys = RoutingKeys}}) ->
+    Queues = rabbit_router:match_routing_key(XName, RoutingKeys),
+    rabbit_router:deliver(Queues, Delivery).
+
 add_binding(none, #exchange{name = _XName},
 	   #binding{key = <<"listen">>}) ->
     ok;
 add_binding(none, #exchange{name = XName}, B) ->
-    rabbit_basic:publish(encode_binding_delivery(XName, bind, B)),
+    deliver(encode_binding_delivery(XName, bind, B)),
     ok;
 add_binding(transaction, _Exchange, _Binding) ->
     ok.
@@ -75,7 +86,7 @@ remove_bindings(Tx, X, Bs) ->
     ok.
 
 remove_binding(none, #exchange{name = XName}, B) ->
-    rabbit_basic:publish(encode_binding_delivery(XName, unbind, B)),
+    deliver(encode_binding_delivery(XName, unbind, B)),
     ok;
 remove_binding(transaction, _X, _B) ->
     ok.
