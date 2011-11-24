@@ -16,12 +16,14 @@
 -module(presence_exchange).
 -include_lib("rabbit_common/include/rabbit.hrl").
 
+-define(EXCHANGE_TYPE_BIN, <<"x-presence">>).
+
 -behaviour(rabbit_exchange_type).
 
 -rabbit_boot_step({?MODULE,
                    [{description, "exchange type x-presence"},
 		    {mfa,         {rabbit_registry, register,
-				   [exchange, <<"x-presence">>, ?MODULE]}},
+				   [exchange, ?EXCHANGE_TYPE_BIN, ?MODULE]}},
                     {requires,    rabbit_registry},
                     {enables,     kernel_ready}]}).
 
@@ -45,8 +47,8 @@ encode_binding_delivery(DeliveryXName,
 			  undefined).
 
 description() ->
-    [{name, <<"x-presence">>},
-     {description, <<"Presence exchange">>}].
+    [{name, ?EXCHANGE_TYPE_BIN},
+     {description, <<"Experimental Presence exchange">>}].
 
 serialise_events() -> false.
 
