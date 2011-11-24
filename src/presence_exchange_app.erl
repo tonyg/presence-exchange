@@ -8,7 +8,7 @@
 %%   License for the specific language governing rights and limitations
 %%   under the License.
 %%
-%%   The Original Code is rabbitmq-x-presence.
+%%   The Original Code is rabbitmq-x-presence by Marek Majkowski.
 %%
 %%   The Initial Developer of the Original Code is VMware, Inc.
 %%   Copyright (c) 2007-2010 VMware, Inc.  All rights reserved.
@@ -18,7 +18,7 @@
 -export([start/2, stop/1]).
 
 %% Dummy supervisor - see Ulf Wiger's comment at
-%% http://www.erlang.org/cgi-bin/ezmlm-cgi/4/50503
+%% http://erlang.2086793.n4.nabble.com/initializing-library-applications-without-processes-td2094473.html
 -behaviour(supervisor).
 -export([init/1]).
 
