@@ -31,6 +31,20 @@ messages published to `x-presence` exchanges are dropped, rather than
 sent through to bound queues, but this behavior may change in the
 future.
 
+## Why aren't messages published to the exchange passed on?
+
+Because it would let arbitrary clients forge presence messages.
+
+Messages *could* be forwarded if they could be marked by the exchange
+in a way that made it clear that the passed-on messages didn't
+originate from within the exchange itself. One way to do that might be
+to have the exchange rewrite messages to be similar to presence
+messages, but with an action of `message` and a body containing the
+encapsulated properties and body of the relayed message. At the
+moment, the RabbitMQ pluggable exchange API makes it a bit tricky to
+rewrite messages on their way through an exchange, so for now messages
+published to presence exchanges are simply dropped.
+
 ## Licensing
 
 This plugin is licensed under the MPL. The full license text is
