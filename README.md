@@ -1,16 +1,13 @@
-# RabbitMQ "X-Presence Exchange" Plugin
-
-This plugin is a slightly changed version of:
-    https://github.com/tonyg/presence-exchange
+# RabbitMQ "Presence Exchange" Plugin
 
 Extends RabbitMQ Server with support for a new experimental exchange
 type, `x-presence`. An exchange of type `x-presence` notifies queues
 that are bound to it when other bindings appear and disappear.
 
 Messages are sent out from an `x-presence` exchange to queues attached
-with a binding key 'listen' when a new binding appears or an existing
-binding disappears. The message sent out has an empty body, with all the
-interesting information in the `headers` property of the message
+with a binding key `listen` when a new binding appears or an existing
+binding disappears. The message sent out has an empty body, with all
+the interesting information in the `headers` property of the message
 headers:
 
     Key       Type  Description
@@ -20,14 +17,19 @@ headers:
     queue     str   The name of the queue being bound/unbound
     key	      str   The binding key supplied at the time of binding
 
-No messages are published for bindings with a key 'listen'. That means
-there are two categories of bindings: with a key 'listen', which
-receive presence messages, but do not produce them and with any other
-binding key, which produce presence messages but do not receive them.
+No messages are published for bindings with a key `listen`. That means
+there are two categories of bindings:
 
-Publishing messages to a 'x-presence' exchange is a bad idea. Right
-now it behaves like a 'direct' exchange, but this behavior may change
-in the future.
+ - bindings made with a key `listen`, which receive presence messages,
+   but do not produce them; and
+
+ - bindings made with any other binding key, which produce presence
+   messages but do not receive them.
+
+Do not publish messages to an `x-presence` exchange. Right now,
+messages published to `x-presence` exchanges are dropped, rather than
+sent through to bound queues, but this behavior may change in the
+future.
 
 ## Licensing
 
