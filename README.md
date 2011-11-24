@@ -31,6 +31,24 @@ messages published to `x-presence` exchanges are dropped, rather than
 sent through to bound queues, but this behavior may change in the
 future.
 
+## Initial summary of present bindings
+
+When a new presence listener is bound to a presence exchange (i.e. a
+new binding is created with `binding_key` being the empty string), an
+initial summary of the available bindings is sent to the newly-bound
+queue.
+
+The summary is sent as a sequence of messages, each formatted as a
+`bind` message as described above.
+
+The initial summary transmission can be disabled by binding with a
+special argument in the `args` table of the `Queue.Bind`
+command. Supplying an argument named `x-presence-exchange-summary`
+with a value of `0` or `false` will disable the initial summary
+transmission; if no such argument is present, or if it has any other
+value than a numeric value or boolean false, the initial summary
+transmission will be enabled.
+
 ## Why aren't messages published to the exchange passed on?
 
 Because it would let arbitrary clients forge presence messages.

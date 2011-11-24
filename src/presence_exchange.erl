@@ -73,7 +73,27 @@ deliver(Delivery = #delivery{message = #basic_message{exchange_name = XName,
     Queues = rabbit_router:match_routing_key(XName, RoutingKeys),
     rabbit_router:deliver(Queues, Delivery).
 
-add_binding(none, _X, #binding{key = ?LISTENER_KEY}) ->
+announce_initial_bindings(XName, Dest) ->
+    announce_initial_bindings(rabbit_binding:list_for_source(XName), XName, Dest).
+
+announce_initial_bindings([], _XName, _Dest) ->
+    ok;
+announce_initial_bindings([#binding{key = <<>>} | Bs], XName, Dest) ->
+    announce_initial_bindings(Bs, XName, Dest);
+announce_initial_bindings([B | Bs], XName, Dest) ->
+    Delivery = encode_binding_delivery(XName, bind, B),
+    rabbit_router:deliver([Dest], Delivery),
+    announce_initial_bindings(Bs, XName, Dest).
+
+add_binding(none, #exchange{name = XName}, #binding{key = ?LISTENER_KEY,
+                                                    destination = Dest,
+                                                    args = ArgsTable}) ->
+    case rabbit_misc:table_lookup(ArgsTable, <<"x-presence-exchange-summary">>) of
+        {bool, false} -> ok;
+        {_, 0} -> ok;
+        _ -> %% either undefined or anything non-false and non-zero
+            announce_initial_bindings(XName, Dest)
+    end,
     ok;
 add_binding(none, #exchange{name = XName}, B) ->
     deliver(encode_binding_delivery(XName, bind, B)),

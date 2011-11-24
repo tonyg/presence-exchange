@@ -5,7 +5,10 @@ import com.rabbitmq.client.LongString;
 import com.rabbitmq.client.test.BrokerTestCase;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  */
@@ -27,11 +30,20 @@ public class PresenceTests extends BrokerTestCase {
         oq2 = channel.queueDeclare().getQueue();
 
         listenBind(lq1);
+        assertEmpty(lq1);
     }
 
     public void listenBind(String whichListenQueue) throws IOException {
-        channel.queueBind(whichListenQueue, xname, listenKey);
-        assertEmpty(whichListenQueue);
+        listenBind(whichListenQueue, true);
+    }
+
+    public void listenBind(String whichListenQueue, boolean wantInitialSummary) throws IOException {
+        Map<String, Object> args = null;
+        if (!wantInitialSummary) {
+            args = new HashMap<String, Object>();
+            args.put("x-presence-exchange-summary", false);
+        }
+        channel.queueBind(whichListenQueue, xname, listenKey, args);
     }
 
     @Override public void releaseResources() throws IOException {
@@ -48,7 +60,7 @@ public class PresenceTests extends BrokerTestCase {
         return s.toString();
     }
 
-    public void assertPresence(String qname, String action, String boundQueue, String boundKey) throws IOException {
+    public Map<String, Object> getPresenceHeaders(String qname) throws IOException {
         GetResponse r = basicGet(qname);
         assertNotNull("Expected a presence message", r);
 
@@ -59,11 +71,28 @@ public class PresenceTests extends BrokerTestCase {
 
         Map<String, Object> h = r.getProps().getHeaders();
         assertNotNull("Expected headers in presence message", h);
+        return h;
+    }
 
+    public void assertPresence(String qname, String action, String boundQueue, String boundKey) throws IOException {
+        Map<String, Object> h = getPresenceHeaders(qname);
         assertEquals(action, getHeaderString(h, "action"));
         assertEquals(xname, getHeaderString(h, "exchange"));
         assertEquals(boundQueue, getHeaderString(h, "queue"));
         assertEquals(boundKey, getHeaderString(h, "key"));
+    }
+
+    public void integrateDelta(String qname, Set<String> presence) throws IOException {
+        Map<String, Object> h = getPresenceHeaders(qname);
+        String action = getHeaderString(h, "action");
+        String boundQueue = getHeaderString(h, "queue");
+        if ("bind".equals(action)) {
+            presence.add(boundQueue);
+        } else if ("unbind".equals(action)) {
+            presence.remove(boundQueue);
+        } else {
+            fail("Unexpected binding action");
+        }
     }
 
     public void simpleBind(String whichOtherQueue) throws IOException {
@@ -98,7 +127,8 @@ public class PresenceTests extends BrokerTestCase {
 
     public void testNoPresenceOnListen() throws IOException {
         listenBind(lq2);
-        assertEmpty(lq1); // a new listen queue shouldn't generate presence
+        assertEmpty(lq2); // no non-listeners yet, but most importantly, ...
+        assertEmpty(lq1); // ... a new listen queue shouldn't generate presence
     }
 
     public void testPresenceToBoth() throws IOException {
@@ -109,6 +139,31 @@ public class PresenceTests extends BrokerTestCase {
         channel.queueDelete(oq1);
         assertUnbind(lq1, oq1);
         assertUnbind(lq2, oq1);
+    }
+
+    public void testInitialReport() throws IOException {
+        simpleBind(oq1);
+        simpleBind(oq2);
+        assertBind(lq1, oq1);
+        assertBind(lq1, oq2);
+
+        listenBind(lq2);
+        Set<String> present = new HashSet<String>();
+        integrateDelta(lq2, present);
+        integrateDelta(lq2, present);
+        assertEquals(2, present.size());
+        assertTrue("contains oq1", present.contains(oq1));
+        assertTrue("contains oq2", present.contains(oq2));
+    }
+
+    public void testDisabledInitialReport() throws IOException {
+        simpleBind(oq1);
+        simpleBind(oq2);
+        assertBind(lq1, oq1);
+        assertBind(lq1, oq2);
+
+        listenBind(lq2, false);
+        assertEmpty(lq2);
     }
 
     public void testOnlyListenersGetPresence() throws IOException {
@@ -123,6 +178,7 @@ public class PresenceTests extends BrokerTestCase {
     public void testBothPresenceToBoth() throws IOException {
         simpleBind(oq1);
         listenBind(lq2);
+        assertBind(lq2, oq1);
         simpleBind(oq2);
 
         assertBind(lq1, oq1);
@@ -140,6 +196,7 @@ public class PresenceTests extends BrokerTestCase {
 
     public void testNoListenUnbind() throws IOException {
         listenBind(lq2);
+        assertEmpty(lq2);
         channel.queueDelete(lq2);
         assertEmpty(lq1); // removal of a listening binding should not cause unbind presence
     }
