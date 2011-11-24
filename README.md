@@ -49,6 +49,21 @@ transmission; if no such argument is present, or if it has any other
 value than a numeric value or boolean false, the initial summary
 transmission will be enabled.
 
+## Binding to an `x-presence` exchange
+
+### To receive presence (bind and unbind) notifications
+
+Bind to a presence exchange with the empty string as the binding's
+`binding_key`. Optionally, supply an `x-presence-exchange-summary`
+argument to `Queue.Bind` to control the initial presence summary, as
+described above.
+
+### To generate presence events
+
+Bind to a presence exchange with any `binding_key` other than the
+empty string. The chosen binding key will be propagated to all
+presence listeners in a message formatted as described above.
+
 ## Why aren't messages published to the exchange passed on?
 
 Because it would let arbitrary clients forge presence messages.
