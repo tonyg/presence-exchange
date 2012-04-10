@@ -70,11 +70,13 @@ delete(_Tx, _X, _Bs) -> ok.
 %% within the exchange.
 deliver(Delivery = #delivery{message = #basic_message{exchange_name = XName,
                                                       routing_keys = RoutingKeys}}) ->
-    Queues = rabbit_router:match_routing_key(XName, RoutingKeys),
-    rabbit_router:deliver(Queues, Delivery).
+    QueueNames = rabbit_router:match_routing_key(XName, RoutingKeys),
+    Queues = rabbit_amqqueue:lookup(QueueNames),
+    rabbit_amqqueue:deliver(Queues, Delivery).
 
 announce_initial_bindings(XName, Dest) ->
-    announce_initial_bindings(rabbit_binding:list_for_source(XName), XName, Dest).
+    {ok, DestQueue} = rabbit_amqqueue:lookup(Dest),
+    announce_initial_bindings(rabbit_binding:list_for_source(XName), XName, DestQueue).
 
 announce_initial_bindings([], _XName, _Dest) ->
     ok;
@@ -82,7 +84,7 @@ announce_initial_bindings([#binding{key = <<>>} | Bs], XName, Dest) ->
     announce_initial_bindings(Bs, XName, Dest);
 announce_initial_bindings([B | Bs], XName, Dest) ->
     Delivery = encode_binding_delivery(XName, bind, B),
-    rabbit_router:deliver([Dest], Delivery),
+    rabbit_amqqueue:deliver([Dest], Delivery),
     announce_initial_bindings(Bs, XName, Dest).
 
 add_binding(none, #exchange{name = XName}, #binding{key = ?LISTENER_KEY,
