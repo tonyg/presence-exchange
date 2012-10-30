@@ -41,7 +41,7 @@ encode_binding_delivery(DeliveryXName,
                {<<"exchange">>, longstr, XName},
                {<<"queue">>, longstr, QName},
                {<<"key">>, longstr, BindingKey}],
-    rabbit_basic:delivery(false, false,
+    rabbit_basic:delivery(false,
                           rabbit_basic:message(
 			    DeliveryXName, ?LISTENER_KEY,
 			    [{headers, Headers}], <<>>),
