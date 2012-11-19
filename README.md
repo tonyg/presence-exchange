@@ -80,7 +80,9 @@ published to presence exchanges are simply dropped.
 
 ## Licensing
 
-This plugin is licensed under the MPL. The full license text is
+This plugin is licensed under the [MPL 2.0][]. The full license text is
 included with the source code for the package. If you have any
-questions regarding licensing, please contact us at
-<info@rabbitmq.com>.
+questions regarding licensing, please contact
+<tonygarnockjones@gmail.com>.
+
+[MPL 2.0]: http://www.mozilla.org/MPL/2.0/
