@@ -4,6 +4,18 @@ Extends RabbitMQ Server with support for a new experimental exchange
 type, `x-presence`. An exchange of type `x-presence` notifies queues
 that are bound to it when other bindings appear and disappear.
 
+## Prebuilt Binary Downloads
+
+From time to time, I make a snapshot binary download of the plugin
+available: see
+<http://eighty-twenty.org/tech/rabbitmq/binary-plugins.html>. Expect
+plugins to have a GPG signature from `tonygarnockjones@gmail.com`, key
+available
+[here](http://homepages.kcbbs.gen.nz/tonyg/gpg-key-gmail.txt),
+fingerprint `630A 8781 4B1F A5BA C30F  A95D 6141 87C4 CEB5 3E0C`.
+
+## Overview
+
 Messages are sent out from an `x-presence` exchange to queues attached
 with a binding key of the empty string when a new binding appears or
 an existing binding disappears. The message sent out has an empty
