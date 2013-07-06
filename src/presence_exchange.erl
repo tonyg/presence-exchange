@@ -18,8 +18,9 @@
                     {enables,     kernel_ready}]}).
 
 -export([description/0, serialise_events/0, route/2]).
--export([validate/1, create/2, recover/2, delete/3, add_binding/3,
-	 remove_bindings/3, assert_args_equivalence/2]).
+-export([validate/1, validate_binding/2, create/2, delete/3,
+         policy_changed/2,
+         add_binding/3, remove_bindings/3, assert_args_equivalence/2]).
 
 encode_binding_delivery(DeliveryXName,
                         Action,
@@ -46,9 +47,10 @@ route(_Exchange, _Delivery) ->
     [].
 
 validate(_X) -> ok.
+validate_binding(_X, _B) -> ok.
 create(_Tx, _X) -> ok.
-recover(_X, _Bs) -> ok.
 delete(_Tx, _X, _Bs) -> ok.
+policy_changed(_X1, _X2) -> ok.
 
 %% This code is based on the publish/2 code in rabbit_basic.erl, with
 %% the middle step of going through the exchange-type's route/2
