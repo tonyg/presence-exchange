@@ -27,7 +27,7 @@ encode_binding_delivery(DeliveryXName,
                         #binding{source = #resource{name = XName},
                                  key = BindingKey,
                                  destination = #resource{name = QName}}) ->
-    Headers = [{<<"action">>, longstr, atom_to_list(Action)},
+    Headers = [{<<"action">>, longstr, list_to_binary(atom_to_list(Action))},
                {<<"exchange">>, longstr, XName},
                {<<"queue">>, longstr, QName},
                {<<"key">>, longstr, BindingKey}],
