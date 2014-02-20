@@ -31,11 +31,13 @@ encode_binding_delivery(DeliveryXName,
                {<<"exchange">>, longstr, XName},
                {<<"queue">>, longstr, QName},
                {<<"key">>, longstr, BindingKey}],
-    rabbit_basic:delivery(false,
+    rabbit_basic:delivery(false, %% mandatory?
+                          false, %% should confirm publication?
                           rabbit_basic:message(
 			    DeliveryXName, ?LISTENER_KEY,
-			    [{headers, Headers}], <<>>),
-			  undefined).
+			    [{headers, Headers}], <<>>), %% message itself
+			  undefined %% message sequence number
+                         ).
 
 description() ->
     [{name, ?EXCHANGE_TYPE_BIN},
