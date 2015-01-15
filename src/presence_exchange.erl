@@ -34,7 +34,9 @@ encode_binding_delivery(DeliveryXName,
                {<<"exchange">>, longstr, XName},
                {<<"queue">>, longstr, QName},
                {<<"key">>, longstr, BindingKey}],
-    Properties = #'P_basic'{headers = Headers},
+    Properties = #'P_basic'{
+      headers = Headers,
+      timestamp = get_timestamp()},
     Message = rabbit_basic:message(DeliveryXName, ?LISTENER_KEY, Properties, <<>>),
     rabbit_basic:delivery(
       false,    %% mandatory?
@@ -46,6 +48,9 @@ encode_binding_delivery(DeliveryXName,
 description() ->
     [{name, ?EXCHANGE_TYPE_BIN},
      {description, <<"Experimental Presence exchange">>}].
+
+get_timestamp() ->
+    calendar:datetime_to_gregorian_seconds(calendar:universal_time())-719528*24*3600.
 
 serialise_events() -> false.
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env python2
 import sys
+import datetime
 import pika
 
 ###########################################################################
@@ -146,10 +147,11 @@ class ChatSession(object):
         if exchange == PRESENCE_EXCHANGE:
             action = header_frame.headers['action']
             who = header_frame.headers['key']
+            when = datetime.datetime.fromtimestamp(header_frame.timestamp)
             if action == 'bind':
-                print 'User %s entered the room.' % (who,)
+                print '[%s] User %s entered the room.' % (when, who,)
             elif action == 'unbind':
-                print 'User %s left the room.' % (who,)
+                print '[%s] User %s left the room.' % (when, who,)
         elif exchange == MESSAGES_EXCHANGE:
             who = method_frame.routing_key
             print '%s: %s' % (who, body)
