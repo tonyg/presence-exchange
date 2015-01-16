@@ -24,6 +24,7 @@
 -export([validate/1, validate_binding/2, create/2, delete/3,
          policy_changed/2,
          add_binding/3, remove_bindings/3, assert_args_equivalence/2]).
+-export([announce_initial_bindings/2, announce_initial_bindings/3]).
 
 encode_binding_delivery(DeliveryXName,
                         Action,
@@ -105,7 +106,7 @@ add_binding(none, #exchange{name = XName}, #binding{key = ?LISTENER_KEY,
         {bool, false} -> ok;
         {_, 0}        -> ok;
         %% either undefined or anything non-false and non-zero
-        _             -> announce_initial_bindings(XName, Dest)
+        _             -> presence_exchange:announce_initial_bindings(XName, Dest)
     end,
     ok;
 add_binding(none, #exchange{name = XName}, B) ->
