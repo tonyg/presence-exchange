@@ -147,7 +147,8 @@ class ChatSession(object):
         if exchange == PRESENCE_EXCHANGE:
             action = header_frame.headers['action']
             who = header_frame.headers['key']
-            when = datetime.datetime.fromtimestamp(header_frame.timestamp)
+            when = datetime.datetime.utcfromtimestamp(
+                header_frame.headers['timestamp_microsec'] / 100000.0)
             if action == 'bind':
                 print '[%s] User %s entered the room.' % (when, who,)
             elif action == 'unbind':

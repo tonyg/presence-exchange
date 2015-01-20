@@ -34,10 +34,9 @@ encode_binding_delivery(DeliveryXName,
     Headers = [{<<"action">>, longstr, list_to_binary(atom_to_list(Action))},
                {<<"exchange">>, longstr, XName},
                {<<"queue">>, longstr, QName},
-               {<<"key">>, longstr, BindingKey}],
-    Properties = #'P_basic'{
-      headers = Headers,
-      timestamp = get_timestamp()},
+               {<<"key">>, longstr, BindingKey},
+               {<<"timestamp_microsec">>, long, get_timestamp()}],
+    Properties = #'P_basic'{headers = Headers},
     Message = rabbit_basic:message(DeliveryXName, ?LISTENER_KEY, Properties, <<>>),
     rabbit_basic:delivery(
       false,    %% mandatory?
@@ -50,8 +49,10 @@ description() ->
     [{name, ?EXCHANGE_TYPE_BIN},
      {description, <<"Experimental Presence exchange">>}].
 
+%% Returns the timestamp in microseconds
 get_timestamp() ->
-    calendar:datetime_to_gregorian_seconds(calendar:universal_time())-719528*24*3600.
+    {Mega, Sec, Micro} = os:timestamp(),
+    ((Mega * 1000000 + Sec) * 1000000 + Micro).
 
 serialise_events() -> false.
 
