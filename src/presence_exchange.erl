@@ -4,6 +4,7 @@
 %%
 -module(presence_exchange).
 -include_lib("rabbit_common/include/rabbit.hrl").
+-include_lib("rabbit_common/include/rabbit_framing.hrl").
 
 -define(EXCHANGE_TYPE_BIN, <<"x-presence">>).
 -define(LISTENER_KEY, <<"">>).
@@ -19,10 +20,11 @@
                     {requires,    rabbit_registry},
                     {enables,     kernel_ready}]}).
 
--export([description/0, serialise_events/0, route/2]).
+-export([info/1, info/2, description/0, serialise_events/0, route/2]).
 -export([validate/1, validate_binding/2, create/2, delete/3,
          policy_changed/2,
          add_binding/3, remove_bindings/3, assert_args_equivalence/2]).
+-export([announce_initial_bindings/2, announce_initial_bindings/3]).
 
 encode_binding_delivery(DeliveryXName,
                         Action,
@@ -32,18 +34,28 @@ encode_binding_delivery(DeliveryXName,
     Headers = [{<<"action">>, longstr, list_to_binary(atom_to_list(Action))},
                {<<"exchange">>, longstr, XName},
                {<<"queue">>, longstr, QName},
-               {<<"key">>, longstr, BindingKey}],
-    rabbit_basic:delivery(false, %% mandatory?
-                          false, %% should confirm publication?
-                          rabbit_basic:message(
-			    DeliveryXName, ?LISTENER_KEY,
-			    [{headers, Headers}], <<>>), %% message itself
-			  undefined %% message sequence number
-                         ).
+               {<<"key">>, longstr, BindingKey},
+               {<<"timestamp_microsec">>, long, get_timestamp()}],
+    Properties = #'P_basic'{headers = Headers},
+    Message = rabbit_basic:message(DeliveryXName, ?LISTENER_KEY, Properties, <<>>),
+    rabbit_basic:delivery(
+      false,    %% mandatory?
+      true,     %% should confirm publication?
+      Message,  %% message itself
+      undefined %% message sequence number
+     ).
+
+info(_X) -> [].
+info(_X, _) -> [].
 
 description() ->
     [{name, ?EXCHANGE_TYPE_BIN},
      {description, <<"Experimental Presence exchange">>}].
+
+%% Returns the timestamp in microseconds
+get_timestamp() ->
+    {Mega, Sec, Micro} = os:timestamp(),
+    ((Mega * 1000000 + Sec) * 1000000 + Micro).
 
 serialise_events() -> false.
 
@@ -69,10 +81,15 @@ deliver(Delivery = #delivery{message = #basic_message{exchange_name = XName,
     Queues = rabbit_amqqueue:lookup(QueueNames),
     rabbit_amqqueue:deliver(Queues, Delivery).
 
+%% 1. Receives the exchange name & the destination queue name
+%% 2. Looks up mnesia to find the queue with its name
+%% 3. List all the bindings the `XName` exchange has and
+%%    calls announce_initial_bindings/3
 announce_initial_bindings(XName, Dest) ->
     {ok, DestQueue} = rabbit_amqqueue:lookup(Dest),
     announce_initial_bindings(rabbit_binding:list_for_source(XName), XName, DestQueue).
 
+%% No bindings
 announce_initial_bindings([], _XName, _Dest) ->
     ok;
 announce_initial_bindings([#binding{key = <<>>} | Bs], XName, Dest) ->
@@ -82,14 +99,18 @@ announce_initial_bindings([B | Bs], XName, Dest) ->
     rabbit_amqqueue:deliver([Dest], Delivery),
     announce_initial_bindings(Bs, XName, Dest).
 
+
+%% Code that gets executed when listeners bind to our exchange. We
+%% just have to send the list of bindings that have a non-empty
+%% key. Which is done by the function announce_initial_bindings().
 add_binding(none, #exchange{name = XName}, #binding{key = ?LISTENER_KEY,
                                                     destination = Dest,
                                                     args = ArgsTable}) ->
     case rabbit_misc:table_lookup(ArgsTable, <<"x-presence-exchange-summary">>) of
         {bool, false} -> ok;
-        {_, 0} -> ok;
-        _ -> %% either undefined or anything non-false and non-zero
-            announce_initial_bindings(XName, Dest)
+        {_, 0}        -> ok;
+        %% either undefined or anything non-false and non-zero
+        _             -> presence_exchange:announce_initial_bindings(XName, Dest)
     end,
     ok;
 add_binding(none, #exchange{name = XName}, B) ->
